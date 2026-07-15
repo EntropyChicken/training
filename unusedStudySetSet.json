@@ -1,5 +1,13 @@
 [
     {
+        "name":"testing",
+        "studySet":[
+            {"a":"1","b":"one"},
+            {"a":"2","b":"two"},
+            {"a":"3","b":"three"}
+        ]
+    },
+    {
         "name":"college training 2026 before message 1",
         "studySet":[
             {"a":"Acts 1:8","b":"But you shall receive power when the Holy Spirit comes upon you, and you shall be My witnesses both in Jerusalem and in all Judea and Samaria and unto the uttermost part of the earth."},

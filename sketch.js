@@ -44,8 +44,10 @@ var rememberListCount = 0, rememberListDone = [];
 var cursorBlinkTimer = 0, cursorBlinkPeriod = 60;
 
 var questionID = -1; // ngl i'm not sure why i didn't use this for the 4 button choice questions
-var sayCorrectAnswerWhenIncorrect = true;
 var questionQueue = [];
+var sayCorrectAnswerWhenIncorrect = true;
+var autoEnterIfCorrect = true;
+var ignoreEnterTimer = 0;
                         }
 
 /** ~~~~~~~~~~~~~~~~ STUDY SETS ~~~~~~~~~~~~~~~~~ **/
@@ -82,7 +84,6 @@ Function.prototype.new = function(){
 // run with regular p5.js while keeping the quiz logic unchanged.
 var push = function(){ push(); };
 var pop = function(){ pop(); };
-var pushStyle = function(){ push(); };
 var popStyle = function(){ pop(); };
 var createFont = function(fontName){ return fontName; };
 
@@ -443,7 +444,7 @@ Box.prototype.display = function(){
 };
 Box.prototype.shortenStringToOneLine = function(s){
     var width = -1;
-    pushStyle();
+    push();
     textSize(this.h/this.lineCount*0.65);
     if(this.centered){
         textAlign(CENTER,CENTER);
@@ -460,7 +461,7 @@ Box.prototype.shortenStringToOneLine = function(s){
         ans+=s[i];
         i++;
     }
-    popStyle();
+    pop();
     return ans;
 };
 Box.prototype.update = function(){
@@ -1657,9 +1658,10 @@ function draw(){
                 i--;
             }
         }
-        // console.log(action);
         if(!action){
-            activeTextbox.onEnter();
+            if (ignoreEnterTimer <= 0) {
+                activeTextbox.onEnter();
+            }
         }
         inp[10]=false;
     }
@@ -1731,19 +1733,47 @@ function draw(){
     }
     }
 
-    if ((screen === "write") && activeTextbox !== voidTextbox && activeTextbox.txt.length > 0) {
-        var isValid = isAcceptablePrefix(activeTextbox.txt, studySet[questionID].b);
-        push();
-        noStroke();
-        if (isValid) {
-            fill(theme.correctColor); // Green
-        } else {
-            fill(theme.incorrectColor); // Red
+    if (ignoreEnterTimer > 0) {
+        ignoreEnterTimer--;
+    }
+
+    if (activeTextbox !== voidTextbox && activeTextbox.txt.length > 0) {
+        
+        var didAutoEnter = false;
+        if(autoEnterIfCorrect){
+            if (screen === "write" || screen === "write race") {
+                if (isAcceptableAnswer(activeTextbox.txt, studySet[questionID].b)) {
+                    activeTextbox.onEnter();
+                    ignoreEnterTimer = 60; // ignore for one second in case of muscle memory
+                    didAutoEnter = true;
+                }
+            }
+            else if (screen === "remember list") {
+                for (var qi = 0; qi < studySet.length; qi++) {
+                    if (rememberListDone[qi] === false && isAcceptableAnswer(activeTextbox.txt, studySet[qi].a + " " + studySet[qi].b)) {
+                        activeTextbox.onEnter();
+                        ignoreEnterTimer = 60;
+                        didAutoEnter = true;
+                        break;
+                    }
+                }
+            }
         }
-        // Draw the circle in the middle of the screen/textbox
-        let rad = 20;
-        ellipse(width-2*rad, 2*rad, rad, rad); 
-        pop();
+
+        // indicate if matches a prefix (on the right track or not)
+        if (!didAutoEnter && (screen === "write" || screen === "write race")) {
+            var isValid = isAcceptablePrefix(activeTextbox.txt, studySet[questionID].b);
+            push();
+            noStroke();
+            if (isValid) {
+                fill(theme.correctColor);
+            } else {
+                fill(theme.incorrectColor);
+            }
+            let rad = 20;
+            ellipse(width - 2 * rad, 2 * rad, rad, rad); 
+            pop();
+        }
     }
     
     bottomBar();

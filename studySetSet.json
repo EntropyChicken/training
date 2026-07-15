@@ -18,13 +18,5 @@
             {"a":"Matthew 28:19","b":"Go therefore and disciple all the nations, baptizing them into the name of the Father and of the Son and of the Holy Spirit,"},
             {"a":"Revelation 22:14","b":"Blessed are those who wash their robes that they may have right to the tree of life and may enter by the gates into the city."}
         ]
-    },
-    {
-        "name":"testing",
-        "studySet":[
-            {"a":"1","b":"one"},
-            {"a":"2","b":"two"},
-            {"a":"3","b":"three"}
-        ]
     }
 ]
