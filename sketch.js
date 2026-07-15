@@ -31,16 +31,20 @@ var writeRaceCount = 0, writeRaceScore = 0, writeRaceTimer = -1;
 var rememberListCount = 0, rememberListDone = [];
 
 var cursorBlinkTimer = 0, cursorBlinkPeriod = 60;
+var pendingSpeech = null;
+var voices = [];
+function loadVoices() {voices = speechSynthesis.getVoices();}
 
 var questionID = -1; // ngl i'm not sure why i didn't use this for the 4 button choice questions
 var questionQueue = [];
 var sayCorrectAnswerWhenIncorrect = true;
 var autoEnterIfCorrect = false;
 var ignoreEnterTimer = 0;
+var speakWritingQuestions = false;
 
 // snapshot of the original values, so the settings screen can offer a "Reset to Defaults" button
 var settingsDefaults = {
-    ignoreSpanishChars:ignoreSpanishChars,
+    speakWritingQuestions:speakWritingQuestions,
     comboWindow:comboWindow,
     choiceOptionDisplayLength:choiceOptionDisplayLength,
     autoEnterIfCorrect:autoEnterIfCorrect,
@@ -80,10 +84,10 @@ Function.prototype.new = function(){
 
 // Compatibility aliases let the original ProcessingJS-style drawing code
 // run with regular p5.js while keeping the quiz logic unchanged.
-var push = function(){ push(); };
-var pop = function(){ pop(); };
-var popStyle = function(){ pop(); };
-var createFont = function(fontName){ return fontName; };
+function push(){ push(); };
+function pop(){ pop(); };
+function popStyle(){ pop(); };
+function createFont(fontName){ return fontName; };
 
                         }
 
@@ -114,7 +118,7 @@ var mobileTextInput = null;
 var mobileTextInputTarget = null;
 var mobileTextInputIsComposing = false;
 
-var mouseNature = function(){
+function mouseNature(){
     if(mouse.status==="clicking"||mouse.status==="was clicking"){
         if(mouse.releaseAfterClick){
             mouse.status="released";
@@ -128,12 +132,12 @@ var mouseNature = function(){
         mouse.status="idle";
     }
 };
-var mouseUpdate = function(){
+function mouseUpdate(){
     mouse.x=mouseX*600/width;
     mouse.y=mouseY*500/height;
 };
 
-var initializeMobileTextInput = function(){
+function initializeMobileTextInput(){
     var isTouchDevice =
         ("ontouchstart" in window) ||
         (navigator.maxTouchPoints>0) ||
@@ -206,7 +210,7 @@ var initializeMobileTextInput = function(){
     });
 };
 
-var focusMobileTextInputAt = function(logicalX,logicalY){
+function focusMobileTextInputAt(logicalX,logicalY){
     if(!mobileTextInput||!textboxes){
         return;
     }
@@ -243,7 +247,7 @@ var focusMobileTextInputAt = function(logicalX,logicalY){
     }
 };
 
-keyPressed = function(){
+function keyPressed(){
     // The native input already handles these keystrokes on touch devices.
     if(mobileTextInput&&document.activeElement===mobileTextInput){
         return;
@@ -282,7 +286,7 @@ keyPressed = function(){
             break;
     }
 };
-keyReleased = function(){
+function keyReleased(){
     if(mobileTextInput&&document.activeElement===mobileTextInput){
         return;
     }
@@ -294,7 +298,7 @@ keyReleased = function(){
                         {
 var themeSet = [];
 var theme = null;
-var initializeThemes = function(){
+function initializeThemes(){
     themeSet = [
         {
             name:"Dark",
@@ -311,7 +315,7 @@ var initializeThemes = function(){
     ];
     theme = themeSet[0];
 };
-var applyTheme = function(themeObj){
+function applyTheme(themeObj){
     textFont(createFont(themeObj.font));
     rectMode(CORNER);
     strokeJoin(ROUND);
@@ -320,7 +324,7 @@ var applyTheme = function(themeObj){
 var flashes = [];
 // {col:color(),opacity,fadeVelocity}
 
-var drawFlashes = function(){
+function drawFlashes(){
     for(var i = flashes.length-1; i>-1; i--){
         fill(red(flashes[i].col),green(flashes[i].col),blue(flashes[i].col),flashes[i].opacity);
         noStroke();
@@ -348,7 +352,7 @@ var confettiColors = [
     [255,0,150],
 ];
 var particles = [];
-var Particle = function(col,rad,x,y,xv,yv){
+function Particle(col,rad,x,y,xv,yv){
     // is actually a rotated rect. no trig, for speed
     this.col=col;
     this.opacity=255;
@@ -379,7 +383,7 @@ Particle.prototype.exist = function(id){
         particles.splice(id,1);
     }
 };
-var confettiBlast = function(count,x,y,xv,yv,spread){
+function confettiBlast(count,x,y,xv,yv,spread){
     if(particles.length>250){
         count/=2;
         if(particles.length>800){
@@ -401,7 +405,7 @@ var confettiBlast = function(count,x,y,xv,yv,spread){
 var keepCheckingClickables = true;
 
 var boxes = [];
-var Box = function(txt,x,y,w,h,lineCount,centered,tag){
+function Box(txt,x,y,w,h,lineCount,centered,tag){
     this.txt = txt;
     this.x=x;
     this.y=y;
@@ -508,7 +512,7 @@ Box.prototype.update = function(){
 };
 
 var buttons = [];
-var Button = function(txt,onClick,x,y,w,h,lineCount,centered,tag){
+function Button(txt,onClick,x,y,w,h,lineCount,centered,tag){
     Box.call(this,txt,x,y,w,h,lineCount,centered,tag);
     this.onClick=onClick; // function run on first click frame
 };
@@ -541,7 +545,7 @@ Button.prototype.interactWithMouse = function(){
 };
 
 var textboxes = [];
-var Textbox = function(onEnter,x,y,w,h,lineCount,centered,tag){
+function Textbox(onEnter,x,y,w,h,lineCount,centered,tag){
     // the actual typing happens in keyPressed. it uses a reference to a focus textbox to make changes.
     Box.call(this,"",x,y,w,h,lineCount,centered,tag);
     this.active = false;
@@ -585,7 +589,7 @@ voidTextbox = Textbox.new(function(){},0,0,0,0,1,false,"void text box");
 var screenHistory = [];
 var onScreenHistoryID = 0;
 
-var loadFourChoiceQuestion = function(){
+function loadFourChoiceQuestion(){
     // clear stuff from previous question
     for(var i = buttons.length-1; i>-1; i--){
         if(buttons[i].tag==="answer choice"){
@@ -637,7 +641,7 @@ var loadFourChoiceQuestion = function(){
         
         // make 3 incorret answer choices
         var alreadyUsedChoiceIDs = [questionID];
-        var onSelectingIncorrect = function(){
+        function onSelectingIncorrect(){
             sessionStats[questionID].incorrect++;
             totalIncorrect++;
             streak=0;
@@ -789,7 +793,7 @@ var loadFourChoiceQuestion = function(){
             ));
             // make 3 incorret answer choices
             var alreadyUsedChoiceIDs = [questionID];
-            var onSelectingIncorrect = function(){
+            function onSelectingIncorrect(){
                 sessionStats[questionID].incorrect++;
                 totalIncorrect++;
                 streak=0;
@@ -844,7 +848,7 @@ var loadFourChoiceQuestion = function(){
     
     comboTimer = comboWindow;
 };
-var loadWritingQuestion = function(){
+function loadWritingQuestion(){
     // clear stuff from previous question
     for(var i = textboxes.length-1; i>-1; i--){
         if(textboxes[i].tag==="answer textbox"){
@@ -889,8 +893,9 @@ var loadWritingQuestion = function(){
         "answer textbox"
     ));
     activeTextbox = textboxes[textboxes.length-1]; // less annoying than clicking on it every time
+    pendingSpeech = studySet[questionID].a;
 };
-var loadWritingRaceQuestion = function(){
+function loadWritingRaceQuestion(){
     // clear stuff from previous question
     for(var i = textboxes.length-1; i>-1; i--){
         if(textboxes[i].tag==="answer textbox"){
@@ -967,17 +972,18 @@ var loadWritingRaceQuestion = function(){
         ));
         activeTextbox = textboxes[textboxes.length-1]; // less annoying than clicking on it every time
     }
+    pendingSpeech = studySet[questionID].a;
 };
-// var loadLearningQuestion = function(){};
+// function loadLearningQuestion(){};
 
 /** ~~~~~~~~~~~~~~~~~~ Settings ~~~~~~~~~~~~~~~~~~ **/
                         {
 var settingsStorageKey = "vocabQuizSettings_v1";
 
-var saveSettings = function(){
+function saveSettings(){
     try{
         localStorage.setItem(settingsStorageKey,JSON.stringify({
-            ignoreSpanishChars:ignoreSpanishChars,
+            speakWritingQuestions:speakWritingQuestions,
             comboWindow:comboWindow,
             choiceOptionDisplayLength:choiceOptionDisplayLength,
             autoEnterIfCorrect:autoEnterIfCorrect,
@@ -989,12 +995,12 @@ var saveSettings = function(){
     }
 };
 
-var loadSavedSettings = function(){
+function loadSavedSettings(){
     try{
         var raw = localStorage.getItem(settingsStorageKey);
         if(!raw){return;}
         var saved = JSON.parse(raw);
-        if(typeof saved.ignoreSpanishChars==="boolean"){ignoreSpanishChars=saved.ignoreSpanishChars;}
+        if(typeof saved.speakWritingQuestions==="boolean"){speakWritingQuestions=saved.speakWritingQuestions;}
         if(typeof saved.comboWindow==="number"){comboWindow=constrain(saved.comboWindow,60,600);}
         if(typeof saved.choiceOptionDisplayLength==="number"){choiceOptionDisplayLength=constrain(saved.choiceOptionDisplayLength,20,150);}
         if(typeof saved.autoEnterIfCorrect==="boolean"){autoEnterIfCorrect=saved.autoEnterIfCorrect;}
@@ -1006,7 +1012,7 @@ var loadSavedSettings = function(){
 };
 
 // a row with a label on the left and an ON/OFF switch on the right
-var buildToggleSettingRow = function(label,y,getVal,setVal){
+function buildToggleSettingRow(label,y,getVal,setVal){
     boxes.push(Box.new(label,20,y,340,44,2,false,"settings label"));
     buttons.push(Button.new(
         getVal()?"ON":"OFF",
@@ -1021,7 +1027,7 @@ var buildToggleSettingRow = function(label,y,getVal,setVal){
 };
 
 // a row with a label on the left and a -/value/+ stepper on the right
-var buildStepperSettingRow = function(label,y,getVal,setVal,step,min,max,formatFn){
+function buildStepperSettingRow(label,y,getVal,setVal,step,min,max,formatFn){
     boxes.push(Box.new(label,20,y,340,44,2,false,"settings label"));
     buttons.push(Button.new(
         "-",
@@ -1252,10 +1258,10 @@ loadScreen = function(screenType,ignoreHistoryOperations){
                 function(v){requireBothSidesWhenWriting=v;}
             );
             buildToggleSettingRow( // lowkey this one is not super important since this is mainly for bible verses
-                "Ignore accents (\u00e1\u2192a, \u00f1\u2192n, etc.)\nwhen checking written answers",
+                "Use text-to-speech narration in writing modes",
                 176,
-                function(){return ignoreSpanishChars;},
-                function(v){ignoreSpanishChars=v;}
+                function(){return speakWritingQuestions;},
+                function(v){speakWritingQuestions=v;}
             );
             buildStepperSettingRow(
                 "Speed combo window (seconds)\n(time before combo resets)",
@@ -1287,7 +1293,7 @@ loadScreen = function(screenType,ignoreHistoryOperations){
             buttons.push(Button.new(
                 "Reset to Defaults",
                 function(){
-                    ignoreSpanishChars = settingsDefaults.ignoreSpanishChars;
+                    speakWritingQuestions = settingsDefaults.speakWritingQuestions;
                     comboWindow = settingsDefaults.comboWindow;
                     choiceOptionDisplayLength = settingsDefaults.choiceOptionDisplayLength;
                     autoEnterIfCorrect = settingsDefaults.autoEnterIfCorrect;
@@ -1314,13 +1320,13 @@ loadScreen = function(screenType,ignoreHistoryOperations){
     }
 };
 
-var goToPreviousScreen = function(){
+function goToPreviousScreen(){
     if(onScreenHistoryID>0){
         onScreenHistoryID--;
         loadScreen(screenHistory[onScreenHistoryID],true);
     }
 };
-var goToNextScreen = function(){
+function goToNextScreen(){
     // not really "next screen" but can't think of a better name. it's the one you went to before you decided to go to the previous screen from that.
     if(onScreenHistoryID<screenHistory.length-1){
         onScreenHistoryID++;
@@ -1332,10 +1338,10 @@ var goToNextScreen = function(){
 
 /** ~~~~~~~~~ Other Shorthand Functions ~~~~~~~~~ **/
                         {
-var removeDuplicateSpaces = function(s){
+function removeDuplicateSpaces(s){
     return s.replace(/\s{2,}/g, ' ');
 };
-var replaceSpanishChars = function(str){
+function replaceSpanishChars(str){
     var replacements = {
         'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u',
         'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'Ü': 'U',
@@ -1349,24 +1355,35 @@ var replaceSpanishChars = function(str){
 // For Write/Write Race modes: if requireBothSidesWhenWriting is on, the user must
 // type .a+" "+.b (treating that as if it were .b), otherwise just .b as usual.
 // This never modifies studySet[qid].b itself.
-var getWritingModeCorrectAnswer = function(qid){
+function getWritingModeCorrectAnswer(qid){
     if(requireBothSidesWhenWriting){
         return studySet[qid].a+" "+studySet[qid].b;
     }
     return studySet[qid].b;
 };
 
-var isAcceptableAnswer = function(submittedAnswer,correctAnswer){
+function normalizeLeadingOrdinals(str) {
+    if (!str) return str;
+    return str
+        .replace(/^first(?=\s|$)/, "1")
+        .replace(/^1st(?=\s|$)/, "1")
+        .replace(/^second(?=\s|$)/, "2")
+        .replace(/^2nd(?=\s|$)/, "2")
+        .replace(/^third(?=\s|$)/, "3")
+        .replace(/^3rd(?=\s|$)/, "3")
+}
+function isAcceptableAnswer(submittedAnswer, correctAnswer){
     if(ignoreSpanishChars){
         submittedAnswer = replaceSpanishChars(submittedAnswer);
         correctAnswer = replaceSpanishChars(correctAnswer);
     }
     var s = submittedAnswer.trim().toLowerCase().replaceAll(deletableRegex,"");
-    // console.log(s);
     if(s[0]==='t'&&s[1]==='o'&&s[2]===' '){
         s=s.substring(3);
     }
     s = removeDuplicateSpaces(s);
+    s = normalizeLeadingOrdinals(s);
+
     correctAnswer = correctAnswer.trim().toLowerCase().replaceAll(deletableRegex,"");
     // console.log(correctAnswer);
     var corrects = correctAnswer.split("/");
@@ -1377,13 +1394,16 @@ var isAcceptableAnswer = function(submittedAnswer,correctAnswer){
             c=c.substring(3);
         }
         c = removeDuplicateSpaces(c);
+        c = normalizeLeadingOrdinals(c);
+
         if(c===s){
             return(true);
         }
     }
     return(false);
 };
-var isAcceptablePrefix = function(submittedPrefix, correctAnswer){
+
+function isAcceptablePrefix(submittedPrefix, correctAnswer){
     if(ignoreSpanishChars){
         submittedPrefix = replaceSpanishChars(submittedPrefix);
         correctAnswer = replaceSpanishChars(correctAnswer);
@@ -1396,8 +1416,7 @@ var isAcceptablePrefix = function(submittedPrefix, correctAnswer){
         s = s.substring(3);
     }
     s = removeDuplicateSpaces(s);
-
-    // If the textbox is essentially empty after filtering, default to valid
+    s = normalizeLeadingOrdinals(s);
     if (s.length === 0) return true;
 
     var cAns = correctAnswer.trim().toLowerCase().replaceAll(deletableRegex,"");
@@ -1410,8 +1429,7 @@ var isAcceptablePrefix = function(submittedPrefix, correctAnswer){
             c = c.substring(3);
         }
         c = removeDuplicateSpaces(c);
-
-        // Check if the correct answer starts with the typed string
+        c = normalizeLeadingOrdinals(c);
         if(c.startsWith(s)){
             return true;
         }
@@ -1419,7 +1437,7 @@ var isAcceptablePrefix = function(submittedPrefix, correctAnswer){
     return false;
 };
 
-var makeCorrectionPopup = function(wasQuestionID,userWrongAnswer,correctAnswerOverride){
+function makeCorrectionPopup(wasQuestionID,userWrongAnswer,correctAnswerOverride){
     var correctAnswerTxt = (correctAnswerOverride===undefined) ? studySet[wasQuestionID].b : correctAnswerOverride;
     var displayTxt;
     if(userWrongAnswer===undefined){
@@ -1443,21 +1461,21 @@ var makeCorrectionPopup = function(wasQuestionID,userWrongAnswer,correctAnswerOv
     ));
 };
 
-var houseIcon = function(backCol,iconCol){
+function houseIcon(backCol,iconCol){
     fill(iconCol);
     rect(-12,-2,24,16);
     triangle(-18,-2,18,-2,0,-15);
     fill(backCol);
     rect(-3,6,6,8);
 };
-var arrowIcon = function(backCol,iconCol){
+function arrowIcon(backCol,iconCol){
     fill(iconCol);
     triangle(-17,0,14,-15,14,15);
     fill(backCol);
     triangle(0,0,14,-6,14,6);
 };
 
-var bottomBar = function(){
+function bottomBar(){
     noStroke();
     var backCol = lerpColor(theme.backgroundColor,color(60,60,60),0.6),
         iconCol = lerpColor(theme.textColor,color(60,60,60),0.8);
@@ -1540,7 +1558,7 @@ var bottomBar = function(){
     rectMode(CORNER);
 };
 
-var studySetsList = function(){
+function studySetsList(){
     noStroke();
     textAlign(LEFT, TOP);
     
@@ -1656,7 +1674,7 @@ var studySetsList = function(){
         }
     }
 };
-var studySetSidePreview = function(){
+function studySetSidePreview(){
     // scroll bar and stuff
     
     // 225-scrollMin+(i-(studySet.length/2-0.5))*20 should equal 225 when i = 0: so that you can scroll the first element to the middle of the screen.
@@ -1701,7 +1719,7 @@ var studySetSidePreview = function(){
     }
 };
 
-var updateCombo = function(){
+function updateCombo(){
     if(comboTimer<=0){
         comboTimer = 0;
         if(combo>0){combo-=(ganime%20===0);}
@@ -1709,12 +1727,12 @@ var updateCombo = function(){
     }
     else{comboTimer--;}
 };
-var updateWriteRace = function(){
+function updateWriteRace(){
     if(writeRaceTimer>=0){
         writeRaceTimer++;
     }
 };
-var updateAnswerHistory = function(){
+function updateAnswerHistory(){
     scoreRate = 0;
     for(var i = answerHistory.length-1; i>-1; i--){
         scoreRate+=answerHistory[i].score;
@@ -1815,6 +1833,9 @@ function setup() {
     resetSessionStats();
     applyTheme(theme);
     loadScreen(screen);
+    
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
 }
 
 // Automatically scale canvas when screen size changes (rotation/resize)
@@ -1824,11 +1845,30 @@ function windowResized() {
 }
 
 function draw(){
-    push();
-    scale(width/600,height/500);
-    
     if(ganime<360){ganime++;}
     else{ganime=1;}
+
+    if (pendingSpeech !== null) {
+        var correctionShowing = false;
+
+        for (var i = 0; i < buttons.length; i++) {
+            if (buttons[i].tag === "answer correction") {
+                correctionShowing = true;
+                break;
+            }
+        }
+
+        if (!correctionShowing) {
+            if (speakWritingQuestions &&
+                (screen === "write" || screen === "write race")) {
+                speak(pendingSpeech);
+            }
+            pendingSpeech = null;
+        }
+    }
+
+    push();
+    scale(width/600,height/500);
     
     mouseUpdate();
     cursor("default");
@@ -2008,7 +2048,7 @@ function draw(){
 
 var lastTouchStartedAt = -1000;
 
-var registerPointerPress = function(logicalX,logicalY){
+function registerPointerPress(logicalX,logicalY){
     if(mouse.status==="clicking"||mouse.status==="was clicking"){
         mouse.status="pressing";
     }
@@ -2024,7 +2064,7 @@ var registerPointerPress = function(logicalX,logicalY){
     focusMobileTextInputAt(logicalX,logicalY);
 };
 
-var registerPointerRelease = function(){
+function registerPointerRelease(){
     if(mouse.status!=="idle"){
         if(mouse.status==="clicking"){
             mouse.releaseAfterClick=true;
@@ -2035,7 +2075,7 @@ var registerPointerRelease = function(){
     }
 };
 
-mousePressed = function(){
+function mousePressed(){
     // iOS may synthesize a mouse event after touchStarted. Ignore that second
     // event so one tap cannot trigger twice.
     if(millis()-lastTouchStartedAt<500){
@@ -2049,7 +2089,7 @@ mousePressed = function(){
     return false;
 };
 
-mouseReleased = function(){
+function mouseReleased(){
     if(millis()-lastTouchStartedAt<500){
         return false;
     }
@@ -2057,7 +2097,7 @@ mouseReleased = function(){
     return false;
 };
 
-touchStarted = function(){
+function touchStarted(){
     lastTouchStartedAt=millis();
 
     var touchX=mouseX;
@@ -2074,26 +2114,39 @@ touchStarted = function(){
     return false;
 };
 
-touchEnded = function(){
+function touchEnded(){
     registerPointerRelease();
     return false;
 };
 
-function speak(text) {
-    // 1. Check if the browser supports Text-to-Speech
-    if ('speechSynthesis' in window) {
-        // 2. Cancel any speech currently playing (prevents overlap)
-        window.speechSynthesis.cancel();
-        
-        // 3. Create the speech request
-        let utterance = new SpeechSynthesisUtterance(text);
-        
-        // Optional: Adjust speed (1 is normal, lower is slower, higher is faster)
-        utterance.rate = 1.0; 
-        
-        // 4. Speak!
-        window.speechSynthesis.speak(utterance);
-    } else {
-        console.warn("Text-to-speech is not supported in this browser.");
+function speak(txt) {
+    if(txt.length >= 3 && txt[1] === " " && txt[2] >= "A" && txt[2] <= "Z"){
+        if(txt[0]==="1"){
+            txt = "first"+txt.substring(1);
+        }
+        if(txt[0]==="2"){
+            txt = "second"+txt.substring(1);
+        }
+        if(txt[0]==="3"){
+            txt = "third"+txt.substring(1);
+        }
     }
+    txt = txt.replaceAll(":", " ");
+
+    if (voices.length === 0) {
+        loadVoices();
+    }
+
+    if (!('speechSynthesis' in window)) return;
+
+    speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(txt);
+
+    utterance.voice =
+        voices.find(v => v.name.includes("Zira")) ??
+        voices.find(v => v.default) ??
+        voices[0];
+
+    speechSynthesis.speak(utterance);
 }
