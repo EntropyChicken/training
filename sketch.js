@@ -1442,9 +1442,7 @@ function numberToWords(num) {
 
     return String(num);
 }
-
-
-function normalizeNumbers(str){
+function normalizeNumbersToWords(str){
     // Convert comma-separated numerals
     str = str.replace(/(\d[\d,]*)/g, function(match){
         let num = Number(match.replace(/,/g,""));
@@ -1453,37 +1451,89 @@ function normalizeNumbers(str){
 
     return str;
 }
+function wordsToNumber(str) {
+    let words = str.toLowerCase().replace(/-/g, " ").split(/\s+/);
+
+    let total = 0;
+    let current = 0;
+
+    for (let word of words) {
+        if (numberWords[word] !== undefined) {
+            current += numberWords[word];
+        } 
+        else if (word === "hundred") {
+            current *= 100;
+        } 
+        else if (word === "thousand") {
+            total += current * 1000;
+            current = 0;
+        } 
+        else if (word === "million") {
+            total += current * 1000000;
+            current = 0;
+        }
+        else {
+            return null;
+        }
+    }
+
+    return total + current;
+}
+function normalizeWordsToNumbers(str){
+    str = str.replace(/,/g, "");
+
+    // Try whole string first
+    let whole = wordsToNumber(str);
+    if (whole !== null) {
+        return String(whole);
+    }
+
+    // Replace standalone numeric values
+    str = str.replace(/\b\d+\b/g, match => String(Number(match)));
+
+    // Replace number-word phrases
+    let words = str.split(/\s+/);
+    let result = [];
+
+    for(let i = 0; i < words.length; i++){
+        let found = false;
+
+        // Try progressively longer phrases
+        for(let j = words.length; j > i; j--){
+            let phrase = words.slice(i, j).join(" ");
+            let n = wordsToNumber(phrase);
+
+            if(n !== null){
+                result.push(String(n));
+                i = j - 1;
+                found = true;
+                break;
+            }
+        }
+
+        if(!found){
+            result.push(words[i]);
+        }
+    }
+
+    return result.join(" ");
+}
+function standardizeString(str){
+    return normalizeNumbersToWords(normalizeLeadingOrdinals(removeDuplicateSpaces(normalizeWordsToNumbers(str.trim().toLowerCase().replaceAll(deletableRegex,"")).trim())));
+}
 function isAcceptableAnswer(submittedAnswer, correctAnswer){
     if(ignoreSpanishChars){
         submittedAnswer = replaceSpanishChars(submittedAnswer);
         correctAnswer = replaceSpanishChars(correctAnswer);
     }
-    var s = submittedAnswer.trim().toLowerCase().replaceAll(deletableRegex,"");
-    if(s[0]==='t'&&s[1]==='o'&&s[2]===' '){
-        s=s.substring(3);
+    
+    var s = standardizeString(submittedAnswer);
+    var c = standardizeString(correctAnswer);
+    if(random(0,10)<1){
+        console.log(s);
+        console.log(c);
     }
-    s = removeDuplicateSpaces(s);
-    s = normalizeLeadingOrdinals(s);
-    s = normalizeNumbers(s);
-
-    correctAnswer = correctAnswer.trim().toLowerCase().replaceAll(deletableRegex,"");
-    // console.log(correctAnswer);
-    var corrects = correctAnswer.split("/");
-    corrects.push(correctAnswer);
-    for(var i = 0; i<corrects.length; i++){
-        var c = corrects[i].trim();
-        if(c[0]==='t'&&c[1]==='o'&&c[2]===' '){
-            c=c.substring(3);
-        }
-        c = removeDuplicateSpaces(c);
-        c = normalizeLeadingOrdinals(c);
-        c = normalizeNumbers(c);
-
-        if(c===s){
-            return(true);
-        }
-    }
-    return(false);
+    return(c===s);
 };
 
 function isAcceptablePrefix(submittedPrefix, correctAnswer){
@@ -1492,30 +1542,10 @@ function isAcceptablePrefix(submittedPrefix, correctAnswer){
         correctAnswer = replaceSpanishChars(correctAnswer);
     }
     
-    // Replace leading spaces only. Trimming the end would falsely validate 
-    // trailing spaces (e.g., typing "the q " would match "the quick")
-    var s = submittedPrefix.replace(/^\s+/, '').toLowerCase().replaceAll(deletableRegex,"");
-    if(s.substring(0,3) === 'to '){
-        s = s.substring(3);
-    }
-    s = removeDuplicateSpaces(s);
-    s = normalizeLeadingOrdinals(s);
-    s = normalizeNumbers(s);
-    if (s.length === 0) return true;
-
-    var cAns = correctAnswer.trim().toLowerCase().replaceAll(deletableRegex,"");
-    var corrects = cAns.split("/");
-    corrects.push(cAns);
-
-    for(var i = 0; i < corrects.length; i++){
-        var c = corrects[i].trim();
-        if(c.substring(0,3) === 'to '){
-            c = c.substring(3);
-        }
-        c = removeDuplicateSpaces(c);
-        c = normalizeLeadingOrdinals(c);
-        c = normalizeNumbers(c);
-        if(c.startsWith(s)){
+    var s = standardizeString(submittedPrefix);
+    for(let i = 1; i<=correctAnswer.length; i++){
+        var c = standardizeString(correctAnswer.substring(0,i));
+        if(c===s){
             return true;
         }
     }
