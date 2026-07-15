@@ -1245,17 +1245,17 @@ loadScreen = function(screenType,ignoreHistoryOperations){
                 function(){return autoEnterIfCorrect;},
                 function(v){autoEnterIfCorrect=v;}
             );
-            buildToggleSettingRow( // lowkey this one is not super important since this is mainly for bible verses
-                "Ignore accents (\u00e1\u2192a, \u00f1\u2192n, etc.)\nwhen checking written answers",
-                120,
-                function(){return ignoreSpanishChars;},
-                function(v){ignoreSpanishChars=v;}
-            );
             buildToggleSettingRow(
                 "Require typing both sides when writing\n(Write modes: answer becomes .a+.b)",
-                176,
+                120,
                 function(){return requireBothSidesWhenWriting;},
                 function(v){requireBothSidesWhenWriting=v;}
+            );
+            buildToggleSettingRow( // lowkey this one is not super important since this is mainly for bible verses
+                "Ignore accents (\u00e1\u2192a, \u00f1\u2192n, etc.)\nwhen checking written answers",
+                176,
+                function(){return ignoreSpanishChars;},
+                function(v){ignoreSpanishChars=v;}
             );
             buildStepperSettingRow(
                 "Speed combo window (seconds)\n(time before combo resets)",
