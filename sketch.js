@@ -1529,10 +1529,6 @@ function isAcceptableAnswer(submittedAnswer, correctAnswer){
     
     var s = standardizeString(submittedAnswer);
     var c = standardizeString(correctAnswer);
-    if(random(0,10)<1){
-        console.log(s);
-        console.log(c);
-    }
     return(c===s);
 };
 
