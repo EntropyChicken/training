@@ -38,7 +38,7 @@ function loadVoices() {voices = speechSynthesis.getVoices();}
 var questionID = -1; // ngl i'm not sure why i didn't use this for the 4 button choice questions
 var questionQueue = [];
 var sayCorrectAnswerWhenIncorrect = true;
-var autoEnterIfCorrect = false;
+var autoEnterIfCorrect = true;
 var ignoreEnterTimer = 0;
 var speakWritingQuestions = false;
 
@@ -1259,7 +1259,7 @@ loadScreen = function(screenType,ignoreHistoryOperations){
                 function(v){requireBothSidesWhenWriting=v;}
             );
             buildToggleSettingRow( // lowkey this one is not super important since this is mainly for bible verses
-                "Use text-to-speech narration in writing modes",
+                "Text-to-speech reading of questions in writing modes (for freehand TTS+STT)",
                 176,
                 function(){return speakWritingQuestions;},
                 function(v){speakWritingQuestions=v;}
@@ -1373,6 +1373,70 @@ function normalizeLeadingOrdinals(str) {
         .replace(/^third(?=\s|$)/, "3")
         .replace(/^3rd(?=\s|$)/, "3")
 }
+const numberWords = [
+    "zero", "one", "two", "three", "four",
+    "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen",
+    "fourteen", "fifteen", "sixteen",
+    "seventeen", "eighteen", "nineteen"
+];
+
+const tensWords = [
+    "", "", "twenty", "thirty", "forty",
+    "fifty", "sixty", "seventy",
+    "eighty", "ninety"
+];
+
+function numberToWords(num) {
+    if(num === 0) return "zero";
+
+    if(num < 20){
+        return numberWords[num];
+    }
+
+    if(num < 100){
+        let tens = Math.floor(num / 10);
+        let ones = num % 10;
+        return tensWords[tens] + (ones ? "-" + numberWords[ones] : "");
+    }
+
+    if(num < 1000){
+        let hundreds = Math.floor(num / 100);
+        let remainder = num % 100;
+
+        return numberWords[hundreds] + " hundred" +
+            (remainder ? " " + numberToWords(remainder) : "");
+    }
+
+    if(num < 1000000){
+        let thousands = Math.floor(num / 1000);
+        let remainder = num % 1000;
+
+        return numberToWords(thousands) + " thousand" +
+            (remainder ? " " + numberToWords(remainder) : "");
+    }
+
+    if(num < 1000000000){
+        let millions = Math.floor(num / 1000000);
+        let remainder = num % 1000000;
+
+        return numberToWords(millions) + " million" +
+            (remainder ? " " + numberToWords(remainder) : "");
+    }
+
+    return String(num);
+}
+
+
+function normalizeNumbers(str){
+    // Convert comma-separated numerals
+    str = str.replace(/(\d[\d,]*)/g, function(match){
+        let num = Number(match.replace(/,/g,""));
+        return numberToWords(num);
+    });
+
+    return str;
+}
 function isAcceptableAnswer(submittedAnswer, correctAnswer){
     if(ignoreSpanishChars){
         submittedAnswer = replaceSpanishChars(submittedAnswer);
@@ -1384,6 +1448,7 @@ function isAcceptableAnswer(submittedAnswer, correctAnswer){
     }
     s = removeDuplicateSpaces(s);
     s = normalizeLeadingOrdinals(s);
+    s = normalizeNumbers(s);
 
     correctAnswer = correctAnswer.trim().toLowerCase().replaceAll(deletableRegex,"");
     // console.log(correctAnswer);
@@ -1396,6 +1461,7 @@ function isAcceptableAnswer(submittedAnswer, correctAnswer){
         }
         c = removeDuplicateSpaces(c);
         c = normalizeLeadingOrdinals(c);
+        c = normalizeNumbers(c);
 
         if(c===s){
             return(true);
@@ -1418,6 +1484,7 @@ function isAcceptablePrefix(submittedPrefix, correctAnswer){
     }
     s = removeDuplicateSpaces(s);
     s = normalizeLeadingOrdinals(s);
+    s = normalizeNumbers(s);
     if (s.length === 0) return true;
 
     var cAns = correctAnswer.trim().toLowerCase().replaceAll(deletableRegex,"");
@@ -1431,6 +1498,7 @@ function isAcceptablePrefix(submittedPrefix, correctAnswer){
         }
         c = removeDuplicateSpaces(c);
         c = normalizeLeadingOrdinals(c);
+        c = normalizeNumbers(c);
         if(c.startsWith(s)){
             return true;
         }
