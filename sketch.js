@@ -8,6 +8,7 @@ var preventClashingAnswerChoices = true;
 var ignoreSpanishChars = false;
 var comboWindow = 180;
 var choiceOptionDisplayLength = 70;
+var requireBothSidesWhenWriting = false; // in Write/Write Race modes, require typing .a+" "+.b instead of just .b (without modifying .b itself)
 var deletableRegex = /[!()*,-.;?[\]`{}~'"]/g; // stuff that is ignored when checking if answer is correct
 
 // FOR PHONES: https://www.khanacademy.org/computer-programming/~/4580394835230720?editor=no
@@ -51,11 +52,11 @@ var ignoreEnterTimer = 0;
 
 // snapshot of the original values, so the settings screen can offer a "Reset to Defaults" button
 var settingsDefaults = {
-    preventClashingAnswerChoices:preventClashingAnswerChoices,
     ignoreSpanishChars:ignoreSpanishChars,
     comboWindow:comboWindow,
     choiceOptionDisplayLength:choiceOptionDisplayLength,
-    autoEnterIfCorrect:autoEnterIfCorrect
+    autoEnterIfCorrect:autoEnterIfCorrect,
+    requireBothSidesWhenWriting:requireBothSidesWhenWriting
 };
                         }
 
@@ -881,7 +882,7 @@ var loadWritingQuestion = function(){
             var wasQuestionID = questionID;
             var accepted;
             var userAnswer = activeTextbox.txt;
-            accepted = isAcceptableAnswer(userAnswer,studySet[questionID].b);
+            accepted = isAcceptableAnswer(userAnswer,getWritingModeCorrectAnswer(questionID));
             if(accepted){
                 sessionStats[questionID].correct++;
                 flashes.push({col:theme.correctColor,opacity:80,fadeVelocity:-1});
@@ -892,7 +893,7 @@ var loadWritingQuestion = function(){
                 flashes.push({col:theme.incorrectColor,opacity:120,fadeVelocity:-5});
                 questionQueue.push(wasQuestionID);
                 if(sayCorrectAnswerWhenIncorrect){
-                    makeCorrectionPopup(wasQuestionID,userAnswer);
+                    makeCorrectionPopup(wasQuestionID,userAnswer,getWritingModeCorrectAnswer(wasQuestionID));
                 }
             }
         },
@@ -955,7 +956,7 @@ var loadWritingRaceQuestion = function(){
                 var wasQuestionID = questionID;
                 var accepted;
                 var userAnswer = activeTextbox.txt;
-                accepted = isAcceptableAnswer(userAnswer,studySet[questionID].b);
+                accepted = isAcceptableAnswer(userAnswer,getWritingModeCorrectAnswer(questionID));
                 
                 writeRaceCount++;
                 if(accepted){
@@ -969,7 +970,7 @@ var loadWritingRaceQuestion = function(){
                     flashes.push({col:theme.incorrectColor,opacity:120,fadeVelocity:-5});
                     questionQueue.push(wasQuestionID);
                     if(sayCorrectAnswerWhenIncorrect){
-                        makeCorrectionPopup(wasQuestionID,userAnswer);
+                        makeCorrectionPopup(wasQuestionID,userAnswer,getWritingModeCorrectAnswer(wasQuestionID));
                     }
                 }
             },
@@ -988,11 +989,11 @@ var settingsStorageKey = "vocabQuizSettings_v1";
 var saveSettings = function(){
     try{
         localStorage.setItem(settingsStorageKey,JSON.stringify({
-            preventClashingAnswerChoices:preventClashingAnswerChoices,
             ignoreSpanishChars:ignoreSpanishChars,
             comboWindow:comboWindow,
             choiceOptionDisplayLength:choiceOptionDisplayLength,
-            autoEnterIfCorrect:autoEnterIfCorrect
+            autoEnterIfCorrect:autoEnterIfCorrect,
+            requireBothSidesWhenWriting:requireBothSidesWhenWriting
         }));
     }
     catch(e){
@@ -1005,11 +1006,11 @@ var loadSavedSettings = function(){
         var raw = localStorage.getItem(settingsStorageKey);
         if(!raw){return;}
         var saved = JSON.parse(raw);
-        if(typeof saved.preventClashingAnswerChoices==="boolean"){preventClashingAnswerChoices=saved.preventClashingAnswerChoices;}
         if(typeof saved.ignoreSpanishChars==="boolean"){ignoreSpanishChars=saved.ignoreSpanishChars;}
         if(typeof saved.comboWindow==="number"){comboWindow=constrain(saved.comboWindow,60,600);}
         if(typeof saved.choiceOptionDisplayLength==="number"){choiceOptionDisplayLength=constrain(saved.choiceOptionDisplayLength,20,150);}
         if(typeof saved.autoEnterIfCorrect==="boolean"){autoEnterIfCorrect=saved.autoEnterIfCorrect;}
+        if(typeof saved.requireBothSidesWhenWriting==="boolean"){requireBothSidesWhenWriting=saved.requireBothSidesWhenWriting;}
     }
     catch(e){
         // ignore corrupt/inaccessible storage
@@ -1256,17 +1257,17 @@ loadScreen = function(screenType,ignoreHistoryOperations){
                 function(){return autoEnterIfCorrect;},
                 function(v){autoEnterIfCorrect=v;}
             );
-            buildToggleSettingRow(
-                "Avoid similar wrong answer choices\n(4-Choice modes) (just keep this on)",
-                120,
-                function(){return preventClashingAnswerChoices;},
-                function(v){preventClashingAnswerChoices=v;}
-            );
-            buildToggleSettingRow(
+            buildToggleSettingRow( // lowkey this one is not super important since this is mainly for bible verses
                 "Ignore accents (\u00e1\u2192a, \u00f1\u2192n, etc.)\nwhen checking written answers",
-                176,
+                120,
                 function(){return ignoreSpanishChars;},
                 function(v){ignoreSpanishChars=v;}
+            );
+            buildToggleSettingRow(
+                "Require typing both sides when writing\n(Write modes: answer becomes .a+.b)",
+                176,
+                function(){return requireBothSidesWhenWriting;},
+                function(v){requireBothSidesWhenWriting=v;}
             );
             buildStepperSettingRow(
                 "Speed combo window (seconds)\n(time before combo resets)",
@@ -1298,11 +1299,11 @@ loadScreen = function(screenType,ignoreHistoryOperations){
             buttons.push(Button.new(
                 "Reset to Defaults",
                 function(){
-                    preventClashingAnswerChoices = settingsDefaults.preventClashingAnswerChoices;
                     ignoreSpanishChars = settingsDefaults.ignoreSpanishChars;
                     comboWindow = settingsDefaults.comboWindow;
                     choiceOptionDisplayLength = settingsDefaults.choiceOptionDisplayLength;
                     autoEnterIfCorrect = settingsDefaults.autoEnterIfCorrect;
+                    requireBothSidesWhenWriting = settingsDefaults.requireBothSidesWhenWriting;
                     saveSettings();
                     loadScreen("settings",true);
                 },
@@ -1357,6 +1358,16 @@ var replaceSpanishChars = function(str){
         return replacements[match];
     });
 };
+// For Write/Write Race modes: if requireBothSidesWhenWriting is on, the user must
+// type .a+" "+.b (treating that as if it were .b), otherwise just .b as usual.
+// This never modifies studySet[qid].b itself.
+var getWritingModeCorrectAnswer = function(qid){
+    if(requireBothSidesWhenWriting){
+        return studySet[qid].a+" "+studySet[qid].b;
+    }
+    return studySet[qid].b;
+};
+
 var isAcceptableAnswer = function(submittedAnswer,correctAnswer){
     if(ignoreSpanishChars){
         submittedAnswer = replaceSpanishChars(submittedAnswer);
@@ -1420,13 +1431,14 @@ var isAcceptablePrefix = function(submittedPrefix, correctAnswer){
     return false;
 };
 
-var makeCorrectionPopup = function(wasQuestionID,userWrongAnswer){
+var makeCorrectionPopup = function(wasQuestionID,userWrongAnswer,correctAnswerOverride){
+    var correctAnswerTxt = (correctAnswerOverride===undefined) ? studySet[wasQuestionID].b : correctAnswerOverride;
     var displayTxt;
     if(userWrongAnswer===undefined){
-        displayTxt = "Answer:\n"+studySet[wasQuestionID].b+"\n\n[Click/enter to continue]";
+        displayTxt = "Answer:\n"+correctAnswerTxt+"\n\n[Click/enter to continue]";
     }
     else{
-        displayTxt = "Answer:\n"+studySet[wasQuestionID].b+"\n\nYou said:\n"+userWrongAnswer+"\n\n[Click/enter to continue]";
+        displayTxt = "Answer:\n"+correctAnswerTxt+"\n\nYou said:\n"+userWrongAnswer+"\n\n[Click/enter to continue]";
     }
     buttons.push(Button.new(
         displayTxt,
@@ -1548,12 +1560,11 @@ var studySetsList = function(){
     var paddingX = 5;
     
     // for the swapper
-    var switchY = 10;
-    var switchHeight = 24;
-    var switchTextOffsetY = 4; // centers text vertically inside the button
-    textSize(17);
-
     {
+        var switchY = 10;
+        var switchHeight = 24;
+        var switchTextOffsetY = 4; // centers text vertically inside the button
+        textSize(17);
         var txt = "Swap Questions and Answers";
         var btnWidth = textWidth(txt) + (paddingX * 2);
         
@@ -1923,7 +1934,7 @@ function draw(){
         var didAutoEnter = false;
         if(autoEnterIfCorrect){
             if (screen === "write" || screen === "write race") {
-                if (isAcceptableAnswer(activeTextbox.txt, studySet[questionID].b)) {
+                if (isAcceptableAnswer(activeTextbox.txt, getWritingModeCorrectAnswer(questionID))) {
                     activeTextbox.onEnter();
                     ignoreEnterTimer = 60; // ignore for one second in case of muscle memory
                     didAutoEnter = true;
@@ -1943,7 +1954,7 @@ function draw(){
 
         // indicate if matches a prefix (on the right track or not)
         if (!didAutoEnter && (screen === "write" || screen === "write race")) {
-            var isValid = isAcceptablePrefix(activeTextbox.txt, studySet[questionID].b);
+            var isValid = isAcceptablePrefix(activeTextbox.txt, getWritingModeCorrectAnswer(questionID));
             push();
             noStroke();
             if (isValid) {
