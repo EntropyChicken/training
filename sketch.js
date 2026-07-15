@@ -2138,10 +2138,10 @@ function speak(txt) {
     }
 
     if (!('speechSynthesis' in window)) {
-        flashes.push({col:theme.incorrectColor,opacity:80,fadeVelocity:-1});
+        // flashes.push({col:theme.incorrectColor,opacity:80,fadeVelocity:-1});
         return;
     }
-    flashes.push({col:theme.correctColor,opacity:80,fadeVelocity:-1});
+    // flashes.push({col:theme.correctColor,opacity:80,fadeVelocity:-1});
 
 
     speechSynthesis.cancel();
