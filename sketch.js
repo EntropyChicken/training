@@ -1773,17 +1773,39 @@ generateNextQuestionID = function(){
 function preload() {
     studySetSet = loadJSON('studySetSet.json');
 }
-function setup(){
+// Helper function to calculate canvas dimensions keeping 600:500 (6:5) ratio
+function getCanvasSize() {
+    let targetRatio = 600 / 500;
+    let w = windowWidth;
+    let h = windowWidth / targetRatio;
+
+    // If the calculated height is too tall for the screen, scale by height instead
+    if (h > windowHeight) {
+        h = windowHeight;
+        w = windowHeight * targetRatio;
+    }
+
+    // Leave a tiny margin (e.g., 95%) so it doesn't touch the screen edges tightly
+    return {
+        width: round(w * 0.95),
+        height: round(h * 0.95)
+    };
+}
+
+function setup() {
     studySetSet = Object.values(studySetSet);
     studySet = studySetSet[studySetSet.length - 1].studySet;
     groupSetLabels = studySetSet[studySetSet.length - 1].groupSetLabels;
     groupSetCanBeQuestion = studySetSet[studySetSet.length - 1].groupSetCanBeQuestion;
 
-    var canvas=createCanvas(600,500);
+    // Calculate dynamic size
+    let size = getCanvasSize();
+    var canvas = createCanvas(size.width, size.height);
+    
     canvas.parent("app");
     canvas.id("quiz-canvas");
-    canvas.attribute("aria-label","Interactive study quiz");
-    pixelDensity(1);
+    canvas.attribute("aria-label", "Interactive study quiz");
+    pixelDensity(displayDensity()); // Automatically scales for crisp retina/high-res screens
     frameRate(60);
     angleMode(DEGREES);
 
@@ -1793,6 +1815,12 @@ function setup(){
     resetSessionStats();
     applyTheme(theme);
     loadScreen(screen);
+}
+
+// Automatically scale canvas when screen size changes (rotation/resize)
+function windowResized() {
+    let size = getCanvasSize();
+    resizeCanvas(size.width, size.height);
 }
 
 function draw(){
