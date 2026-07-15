@@ -2,7 +2,6 @@ var preventClashingAnswerChoices = true;
 var ignoreSpanishChars = false;
 var comboWindow = 180;
 var choiceOptionDisplayLength = 70;
-var requireBothSidesWhenWriting = false; // in Write/Write Race modes, require typing .a+" "+.b instead of just .b (without modifying .b itself)
 var deletableRegex = /[!()*,-.:;?[\]`{}~'"]/g; // stuff that is ignored when checking if answer is correct
 
 
@@ -39,6 +38,7 @@ var questionID = -1; // ngl i'm not sure why i didn't use this for the 4 button 
 var questionQueue = [];
 var sayCorrectAnswerWhenIncorrect = true;
 var autoEnterIfCorrect = true;
+var requireBothSidesWhenWriting = true;
 var ignoreEnterTimer = 0;
 var speakWritingQuestions = false;
 
