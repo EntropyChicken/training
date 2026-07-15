@@ -45,6 +45,7 @@ var cursorBlinkTimer = 0, cursorBlinkPeriod = 60;
 
 var questionID = -1; // ngl i'm not sure why i didn't use this for the 4 button choice questions
 var sayCorrectAnswerWhenIncorrect = true;
+var questionQueue = [];
                         }
 
 /** ~~~~~~~~~~~~~~~~ STUDY SETS ~~~~~~~~~~~~~~~~~ **/
@@ -644,6 +645,7 @@ var loadFourChoiceQuestion = function(){
             combo=0;
             answerHistory.push({score:-1,time:0});
             flashes.push({col:theme.incorrectColor,opacity:120,fadeVelocity:-5});
+            questionQueue.push(questionID);
             var wasQuestionID = questionID;
             loadFourChoiceQuestion();
             if(sayCorrectAnswerWhenIncorrect){
@@ -755,6 +757,7 @@ var loadFourChoiceQuestion = function(){
                     combo=0;
                     answerHistory.push({score:-1,time:0});
                     flashes.push({col:theme.incorrectColor,opacity:120,fadeVelocity:-5});
+                    questionQueue.push(questionID);
                     var wasQuestionID = questionID;
                     loadFourChoiceQuestion();
                     if(sayCorrectAnswerWhenIncorrect){
@@ -794,6 +797,7 @@ var loadFourChoiceQuestion = function(){
                 combo=0;
                 answerHistory.push({score:-1,time:0});
                 flashes.push({col:theme.incorrectColor,opacity:120,fadeVelocity:-5});
+                questionQueue.push(questionID);
                 var wasQuestionID = questionID;
                 loadFourChoiceQuestion();
                 if(sayCorrectAnswerWhenIncorrect){
@@ -876,6 +880,7 @@ var loadWritingQuestion = function(){
             if(!accepted){
                 sessionStats[wasQuestionID].incorrect++;
                 flashes.push({col:theme.incorrectColor,opacity:120,fadeVelocity:-5});
+                questionQueue.push(wasQuestionID);
                 if(sayCorrectAnswerWhenIncorrect){
                     makeCorrectionPopup(wasQuestionID,userAnswer);
                 }
@@ -952,6 +957,7 @@ var loadWritingRaceQuestion = function(){
                 if(!accepted){
                     sessionStats[wasQuestionID].incorrect++;
                     flashes.push({col:theme.incorrectColor,opacity:120,fadeVelocity:-5});
+                    questionQueue.push(wasQuestionID);
                     if(sayCorrectAnswerWhenIncorrect){
                         makeCorrectionPopup(wasQuestionID,userAnswer);
                     }
@@ -1559,34 +1565,28 @@ resetSessionStats = function(){
         sessionStats[i]={correct:0,incorrect:0};
     }
     questionID=-1;
+    questionQueue = [];
 };
 generateNextQuestionID = function(){
-    if(questionID===undefined){questionID=-1;}
-    if(studySet.length>1){
-        var possibilities = [];
-        var quantityOfLeastSelected = -1;
+    if(questionQueue.length === 0){
         for(var i = 0; i<studySet.length; i++){
-            if(i===questionID){continue;}
-            
-            var quantity = sessionStats[i].correct*3+sessionStats[i].incorrect;
-            if(quantity<=quantityOfLeastSelected||quantityOfLeastSelected===-1){
-                if(quantity!==quantityOfLeastSelected){
-                    quantityOfLeastSelected=quantity;
-                    possibilities = [];
-                }
-                possibilities.push(i);
-            }
+            questionQueue.push(i);
         }
-        if(possibilities.length){ // should always be true?
-            questionID=possibilities[floor(random(0,possibilities.length))];
-        }
-        else{
-            questionID=0;
+        // shuffle randomly
+        for (var i = questionQueue.length - 1; i > 0; i--) {
+            var j = floor(random(0,i+1));
+            var temp = questionQueue[i];
+            questionQueue[i] = questionQueue[j];
+            questionQueue[j] = temp;
         }
     }
-    else{
-        questionID=0;
+    // make sure no repeat just from last time
+    if(questionQueue.length>1 && questionQueue[0]===questionID){
+        var temp = questionQueue[0];
+        questionQueue[0] = questionQueue[questionQueue.length-1];
+        questionQueue[questionQueue.length-1] = temp;
     }
+    questionID = questionQueue.shift();
 };
                         }
 
