@@ -1,6 +1,43 @@
 [
     {
-        "name":"college training 2026",
+        "name":"Word",
+        "studySet":[
+            {"a":"Philippians 4:13","b":"I am able to do all things in Him who empowers me."},
+            {"a":"Ephesians 6:11","b":"Put on the whole armor of God that you may be able to stand against the stratagems of the devil."},
+            {"a":"Matthew 24:35","b":"Heaven and earth will pass away, but My words shall by no means pass away."},
+            
+            {"a":"Revelation 2:4","b":"But I have one thing against you, that you have left your first love."},
+            {"a":"John 17:17","b":"Sanctify them in the truth. Your word is truth."},
+            {"a":"Matthew 18:20","b":"For where there are two or three gathered into My name, there am I in their midst."},
+            {"a":"John 17:18","b":"As You have sent Me into the world, I also have sent them into the world"},
+            {"a":"Ephesians 6:12","b":"For our wrestling is not against blood and flesh but against the rulers, against the authorities, against the world-rulers of this darkness, against the spiritual forces of evil in the heavenlies."},
+            {"a":"John 11:35","b":"Jesus wept."},
+            {"a":"John 15:5","b":"I am the vine; you are the branches. He who abides in Me and I in him, he bears much fruit; for apart from Me you can do nothing."},
+            {"a":"Galatians 2:20","b":"I am crucified with Christ; and it is no longer I who live, but it is Christ who lives in me; and the life which I now live in the flesh I live in faith, the faith of the Son of God, who loved me and gave Himself up for me."},
+            {"a":"John 15:18","b":"If the world hates you, know that it has hated Me before you."},
+            {"a":"Matthew 4:4","b":"But He answered and said, It is written, \"Man shall not live on bread alone, but on every word that proceeds out through the mouth of God.\""},
+            {"a":"Romans 8:10","b":"But if Christ is in you, though the body is dead because of sin, the spirit is life because of righteousness."},
+            {"a":"John 3:16","b":"For God so loved the world that He gave His only begotten Son, that everyone who believes into Him would not perish, but would have eternal life."},
+            {"a":"John 17:15","b":"I do not ask that You would take them out of the world, but that You would keep them out of the hands of the evil one."},
+            {"a":"1 Timothy 1:4","b":"Nor to give heed to myths and unending genealogies, which produce questionings rather than God's economy, which is in faith."},
+            {"a":"Isaiah 43:19","b":"Indeed, I am doing a new thing; It will now spring forth; Do you not know it? I will even make a way in the wilderness, Rivers in the desert."},
+            {"a":"Psalm 83:1","b":"O God, do not keep silent; Do not be quiet, and do not be still, O God."},
+            {"a":"Matthew 5:44","b":"But I say to you, Love your enemies, and pray for those who persecute you,"},
+            {"a":"Luke 15:7","b":"I tell you that in the same way there will be more joy in heaven over one sinner repenting than over ninety-nine righteous persons who have no need of repentance."}
+        ]
+    },
+    {
+        "name":"Unfamiliar Verses",
+        "studySet":[
+            {"a":"Mark 9:8","b":"And suddenly, when they looked around, they no longer saw anyone, but Jesus only with them."},
+            {"a":"Romans 8:28","b":"And we know that all things work together for good to those who love God, to those who are called according to His purpose."},
+            {"a":"Ephesians 3:17","b":"That Christ may make His home in your hearts through faith, that you, being rooted and grounded in love,"},
+            {"a":"John 21:25","b":"And there are also many other things which Jesus did, which, if they were written one by one, I suppose that not even the world itself could contain the books written."},
+            {"a":"Psalm 119:147","b":"I anticipated the dawn and cried out; / I hoped in Your words."}
+        ]
+    },
+    {
+        "name":"College Training 2026",
         "studySet":[
             {"a":"Acts 1:8","b":"But you shall receive power when the Holy Spirit comes upon you, and you shall be My witnesses both in Jerusalem and in all Judea and Samaria and unto the uttermost part of the earth."},
             {"a":"Acts 22:15","b":"For you will be a witness to Him unto all men of the things which you have seen and heard."},
